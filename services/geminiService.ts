@@ -34,56 +34,32 @@ const getPovPrompt = (isObjectRotationOnly: boolean): string => {
   if (isObjectRotationOnly) {
     return `
     **Role:** You are an expert 3D object analyst AI.
-    **Objective:** Analyze an input image to determine the main subject's orientation and then write three distinct, highly-detailed, three-paragraph prompts to generate the three *missing* canonical orientations ('front', 'side', 'top', 'back'). The subject MUST be placed on a plain white background.
+    **Task:** Analyze the input image to identify the subject's current orientation (front, side, top, or back). Then, generate three distinct, highly-detailed prompts for the **three missing** canonical orientations.
 
-    **Your process MUST follow these steps precisely:**
+    **Requirements:**
+    1. Identify the current orientation internally.
+    2. Generate prompts ONLY for the three missing orientations.
+    3. Each prompt must describe isolating the subject on a seamless white background.
+    4. Each prompt must be detailed (consisting of exactly three paragraphs: Orientation/Staging, Lighting/Shadow, Subject Details).
 
-    **Step 1: Analyze and Identify.**
-    - Examine the input image.
-    - Determine which ONE of the four canonical orientations ('front', 'side', 'top', or 'back') the main subject most accurately represents.
-    - State this orientation internally. For example: "The input image is a 'side' view."
-
-    **Step 2: Determine the Missing Orientations.**
-    - Based on your identification in Step 1, list the three remaining canonical orientations.
-    - Example: If the input was 'side', the missing orientations are 'front', 'top', and 'back'.
-
-    **Step 3: Write Three Distinct Prompts.**
-    - For EACH of the three missing orientations identified in Step 2, write a unique and detailed prompt.
-    - **YOU MUST NOT write a prompt for the orientation you identified in Step 1.** This is a critical rule.
-    - Each prompt must describe isolating the subject and rendering it on a seamless white background.
-
-    **Prompt Structure Requirements (for EACH of the three prompts):**
-    - **Exactly Three Paragraphs:** Each prompt you write must consist of exactly three paragraphs.
-    - **Paragraph 1 (Orientation & Staging):** Describe the precise new orientation. Command the AI to isolate the subject from its original background and place it on a solid, clean, seamless white background.
-    - **Paragraph 2 (Lighting & Shadow):** Detail the lighting for the new orientation. Where should the key light be? How should shadows be cast on the white ground plane to create a sense of realism and volume?
-    - **Paragraph 3 (Subject Details & Texture):** Describe the specific parts of the subject that are now visible from this new angle. Emphasize maintaining texture, material, and color consistency with the original image.`;
+    **Output:**
+    Return ONLY a valid JSON object with a single key "prompts" containing the array of 3 prompt strings. Do not output any other text.
+    `;
   }
 
   return `
     **Role:** You are a world-class virtual cinematographer AI.
-    **Objective:** Analyze an input image to determine its camera Point of View (POV) and then write three distinct, highly-detailed, three-paragraph prompts to generate the three *missing* canonical POVs ('front', 'side', 'top', 'back').
+    **Task:** Analyze the input image to determine its camera Point of View (POV) (front, side, top, or back). Then, generate three distinct, highly-detailed prompts for the **three missing** canonical POVs.
 
-    **Your process MUST follow these steps precisely:**
+    **Requirements:**
+    1. Identify the current POV internally.
+    2. Generate prompts ONLY for the three missing POVs.
+    3. Each prompt must describe moving the VIRTUAL CAMERA to the new position.
+    4. Each prompt must be detailed (consisting of exactly three paragraphs: Camera/Composition, Lighting/Atmosphere, Subject/Scene Details).
 
-    **Step 1: Analyze and Identify.**
-    - Examine the input image.
-    - Determine which ONE of the four canonical POVs ('front', 'side', 'top', or 'back') it most accurately represents.
-    - State this POV internally. For example: "The input image is a 'side' view."
-
-    **Step 2: Determine the Missing POVs.**
-    - Based on your identification in Step 1, list the three remaining canonical POVs.
-    - Example: If the input was 'side', the missing POVs are 'front', 'top', and 'back'.
-
-    **Step 3: Write Three Distinct Prompts.**
-    - For EACH of the three missing POVs identified in Step 2, write a unique and detailed prompt.
-    - **YOU MUST NOT write a prompt for the POV you identified in Step 1.** This is a critical rule.
-    - Each prompt must describe moving the VIRTUAL CAMERA to the new position. The entire scene, including background and lighting, must change.
-
-    **Prompt Structure Requirements (for EACH of the three prompts):**
-    - **Exactly Three Paragraphs:** Each prompt you write must consist of exactly three paragraphs.
-    - **Paragraph 1 (Camera & Composition):** Describe the new camera position, angle, and framing of the scene. How does the composition change? What is in the foreground/background now?
-    - **Paragraph 2 (Lighting & Atmosphere):** Describe the new lighting scheme. Where is the key light coming from? How are shadows cast across the entire scene? What is the mood?
-    - **Paragraph 3 (Subject & Scene Details):** Describe how the main subject appears from this new angle. What new details on the subject are visible? How does the background parallax shift? What new textures or reflections can be seen throughout the scene.`;
+    **Output:**
+    Return ONLY a valid JSON object with a single key "prompts" containing the array of 3 prompt strings. Do not output any other text.
+    `;
 };
 
 export const getRotationPrompts = async (base64Image: string, mimeType: string, isObjectRotationOnly: boolean, mode: ModelMode): Promise<string[]> => {
@@ -93,7 +69,7 @@ export const getRotationPrompts = async (base64Image: string, mimeType: string, 
   // Select model based on mode
   const modelName = mode === 'pro' ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
   
-  const response = await retryWithBackoff(() => ai.models.generateContent({
+  const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
     model: modelName,
     contents: {
       parts: [
@@ -119,7 +95,7 @@ export const getRotationPrompts = async (base64Image: string, mimeType: string, 
   try {
     let jsonText = response.text || "";
     
-    // 1. Remove Markdown code blocks if present (e.g. ```json ... ```)
+    // 1. Remove Markdown code blocks if present
     jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
     // 2. Locate the first '{' and last '}' to extract just the JSON object
@@ -149,8 +125,7 @@ export const getRotationPrompts = async (base64Image: string, mimeType: string, 
 
   } catch (e) {
     console.error("Failed to parse JSON from Gemini:", e);
-    console.log("Raw text:", response.text); // Helpful for debugging
-    throw new Error("The AI failed to return valid rotation instructions. Please try a different image.");
+    console.log("Raw text:", response.text); 
   }
 
   console.error("Malformed Response Content:", response.text);
@@ -194,11 +169,15 @@ export const generateRotatedImage = async (
     },
   }));
 
-  const imagePart = response.candidates?.[0]?.content?.parts?.find(part => part.inlineData);
-  if (imagePart?.inlineData) {
-    const newMimeType = imagePart.inlineData.mimeType;
-    const newBase64 = imagePart.inlineData.data;
-    return `data:${newMimeType};base64,${newBase64}`;
+  // Iterate through parts to find the image
+  if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+              const newMimeType = part.inlineData.mimeType;
+              const newBase64 = part.inlineData.data;
+              return `data:${newMimeType};base64,${newBase64}`;
+          }
+      }
   }
 
   throw new Error("The AI did not return an image. It might not be able to process this request.");

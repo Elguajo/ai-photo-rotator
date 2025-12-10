@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# AI Object Rotator
 
-# Run and deploy your AI Studio app
+Generate multi-view perspectives of objects using Google Gemini models.
 
-This contains everything you need to run your app locally.
+## Local Development Setup
 
-View your app in AI Studio: https://ai.studio/apps/drive/1oARUkMGCTrOVnWrj6L278rSHeUaM7a9h
+If you are running this project locally, you must configure your API key.
 
-## Run Locally
+1.  **Get an API Key**
+    Obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/).
 
-**Prerequisites:**  Node.js
+2.  **Configure Environment**
+    Create a file named `.env` in the root directory of the project.
+    Add your API key to the file:
 
+    ```env
+    API_KEY=your_actual_api_key_here
+    ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+    *Note: Ensure you do not commit your `.env` file to version control.*
+
+3.  **Run the App**
+    Start the development server (e.g., using `npm start`, `vite`, or your preferred bundler).
+
+## Troubleshooting
+
+- **Error: "API_KEY environment variable is not set"**
+  This means the app cannot find the `API_KEY`. Double-check that your `.env` file exists in the root directory and contains the correct key format. Restart your development server after creating the file.

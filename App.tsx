@@ -49,6 +49,8 @@ const App: React.FC = () => {
       const hasKey = await win.aistudio.hasSelectedApiKey();
       setHasApiKey(hasKey);
     } else {
+      // In local env, we assume key is in process.env, but we can't verify it until a call is made.
+      // We set true to allow UI access, and handle errors if .env is missing.
       setHasApiKey(true);
     }
     setCheckingKey(false);
@@ -102,9 +104,6 @@ const App: React.FC = () => {
       // Clear previous error
       setError('');
       
-      const analysisModelName = modelMode === 'pro' ? 'Gemini 3.0 Pro' : 'Gemini 2.5 Flash';
-      const genModelName = modelMode === 'pro' ? 'Gemini 3.0 Pro' : 'Gemini 2.5 Flash';
-
       setStatus(`Analyzing scene geometry...`);
       const prompts = await getRotationPrompts(base64Image, mimeType, isObjectRotationOnly, modelMode);
 
@@ -136,7 +135,10 @@ const App: React.FC = () => {
          setError("The AI model is currently overloaded. Please try again shortly.");
       } else if (err instanceof Error && err.message.includes('Requested entity was not found')) {
          setError("API Key Error. Please re-select your key.");
-         if (modelMode === 'pro') setHasApiKey(false);
+         // If we are in an environment that allows re-selecting, force it
+         if ((window as any).aistudio) setHasApiKey(false);
+      } else if (err instanceof Error && err.message.includes('API_KEY environment variable is not set')) {
+         setError("Missing API Key. Please add API_KEY to your .env file locally.");
       } else {
          setError(err instanceof Error ? err.message : 'Processing failed.');
       }
@@ -186,10 +188,7 @@ const App: React.FC = () => {
   }, [originalImage, generatedImages]);
 
   const handleCellClick = (index: number) => {
-    // Determine the correct index in lightboxImages
-    // Grid: Original (0) -> View 1 (1) -> View 2 (2) -> View 3 (3)
-    // The grid mapping matches the lightboxImages order if Original exists.
-    if (!originalImage && index === 0) return; // Should not happen in UI logic but safety
+    if (!originalImage && index === 0) return;
     setLightboxIndex(index);
   };
 
@@ -206,7 +205,9 @@ const App: React.FC = () => {
   }
 
   const isFinished = !isLoading && generatedImages.length === 3;
-  const isProModeLocked = modelMode === 'pro' && !hasApiKey;
+  // Lock UI if NO key is present, regardless of mode. 
+  // Standard mode also requires an API Key (Gemini Flash).
+  const isLocked = !hasApiKey;
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-white selection:text-black antialiased flex flex-col">
@@ -269,19 +270,23 @@ const App: React.FC = () => {
 
         {/* Content Area */}
         <div className="w-full">
-          {isProModeLocked ? (
+          {isLocked ? (
             <div className="w-full aspect-[2/1] min-h-[400px] flex flex-col items-center justify-center bg-zinc-900/30 rounded-2xl border border-zinc-800 relative overflow-hidden group">
                 {/* Background Glow */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80 z-0"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-amber-500/10 blur-[100px] rounded-full z-0"></div>
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 blur-[100px] rounded-full z-0 ${modelMode === 'pro' ? 'bg-amber-500/10' : 'bg-blue-500/10'}`}></div>
                 
                 <div className="relative z-10 text-center max-w-md px-6">
                     <div className="w-12 h-12 bg-zinc-800 rounded-xl border border-zinc-700 flex items-center justify-center mx-auto mb-6 shadow-xl">
-                        <LockIcon className="w-5 h-5 text-amber-500" />
+                        <LockIcon className={`w-5 h-5 ${modelMode === 'pro' ? 'text-amber-500' : 'text-blue-500'}`} />
                     </div>
-                    <h2 className="text-xl font-semibold text-white mb-2">Unlock Professional Grade</h2>
+                    <h2 className="text-xl font-semibold text-white mb-2">
+                        {modelMode === 'pro' ? 'Unlock Professional Grade' : 'Connect API Key'}
+                    </h2>
                     <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
-                        Gemini 3.0 Pro offers superior geometry understanding, realistic lighting, and higher resolution outputs. Requires a paid API key.
+                        {modelMode === 'pro' 
+                            ? 'Gemini 3.0 Pro offers superior geometry understanding, realistic lighting, and higher resolution outputs. Requires a paid API key.' 
+                            : 'To generate images, please connect your Google Gemini API key. This ensures you have access to the generation models.'}
                     </p>
                     
                     <div className="flex flex-col sm:flex-row gap-3 justify-center w-full">
@@ -290,12 +295,6 @@ const App: React.FC = () => {
                             className="h-10 px-6 bg-white hover:bg-zinc-200 text-black text-sm font-medium rounded-lg transition-colors shadow-[0_0_20px_rgba(255,255,255,0.1)]"
                         >
                             Connect API Key
-                        </button>
-                        <button 
-                            onClick={() => setModelMode('standard')}
-                            className="h-10 px-6 bg-transparent hover:bg-zinc-800 text-zinc-400 hover:text-white text-sm font-medium rounded-lg transition-colors border border-transparent hover:border-zinc-700"
-                        >
-                            Use Standard
                         </button>
                     </div>
                     
