@@ -1,0 +1,5 @@
+{
+  "name": "AI Object Rotator",
+  "description": "Upload an image to generate three new images from different camera points of view using AI. You can choose to rotate the entire scene or isolate and rotate just the main object.",
+  "requestFramePermissions": []
+}
