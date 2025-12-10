@@ -6,7 +6,7 @@ export type ModelMode = 'standard' | 'pro';
 // This is necessary because the user might select a key dynamically via window.aistudio.
 const getAI = () => {
   if (!process.env.API_KEY) {
-    throw new Error("API_KEY environment variable is not set");
+    throw new Error("API_KEY environment variable is not set. If running locally, please check README.md for bundler configuration instructions.");
   }
   return new GoogleGenAI({ apiKey: process.env.API_KEY });
 };

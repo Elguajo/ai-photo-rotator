@@ -138,7 +138,7 @@ const App: React.FC = () => {
          // If we are in an environment that allows re-selecting, force it
          if ((window as any).aistudio) setHasApiKey(false);
       } else if (err instanceof Error && err.message.includes('API_KEY environment variable is not set')) {
-         setError("Missing API Key. Please add API_KEY to your .env file locally.");
+         setError("Missing API Key. Check README.md for local setup (Vite config required).");
       } else {
          setError(err instanceof Error ? err.message : 'Processing failed.');
       }

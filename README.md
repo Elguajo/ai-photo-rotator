@@ -4,25 +4,57 @@ Generate multi-view perspectives of objects using Google Gemini models.
 
 ## Local Development Setup
 
-If you are running this project locally, you must configure your API key.
+To run this app locally, you need to configure your API key so it is accessible to the browser as `process.env.API_KEY`.
 
-1.  **Get an API Key**
-    Obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/).
+### 1. Get an API Key
+Obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/).
 
-2.  **Configure Environment**
-    Create a file named `.env` in the root directory of the project.
-    Add your API key to the file:
+### 2. Configure Environment
 
-    ```env
-    API_KEY=your_actual_api_key_here
-    ```
+Create a `.env` file in the root directory:
 
-    *Note: Ensure you do not commit your `.env` file to version control.*
+```env
+API_KEY=your_actual_api_key_here
+```
 
-3.  **Run the App**
-    Start the development server (e.g., using `npm start`, `vite`, or your preferred bundler).
+### 3. Bundler Configuration (Critical Step)
+
+By default, bundlers do not expose arbitrary `.env` variables to the client. You must configure this based on your tool:
+
+#### If using Vite (Recommended)
+You need to explicitly define the global variable in `vite.config.ts` (or `.js`):
+
+```javascript
+import { defineConfig, loadEnv } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [react()],
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+    }
+  }
+})
+```
+
+#### If using Create React App (CRA) / Webpack
+CRA only exposes variables starting with `REACT_APP_`. Since this app requires `process.env.API_KEY` (per Google SDK guidelines), you might need to use a library like `react-app-rewired` or simply hardcode it temporarily for testing (not recommended for production).
+
+Alternatively, if you can change the build setup, use `dotenv-webpack` to expose `API_KEY`.
+
+### 4. Run the App
+Restart your development server after changing configuration files:
+```bash
+npm run dev
+# or
+npm start
+```
 
 ## Troubleshooting
 
 - **Error: "API_KEY environment variable is not set"**
-  This means the app cannot find the `API_KEY`. Double-check that your `.env` file exists in the root directory and contains the correct key format. Restart your development server after creating the file.
+  - Ensure `.env` exists in the project root.
+  - Ensure you restarted the dev server.
+  - Check your bundler config (step 3 above) to ensure `process.env.API_KEY` is being replaced with the actual string value during build.
